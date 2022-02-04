@@ -35,6 +35,7 @@
 		        $GSText2 = isset($matches[1][0])?$matches[1][0]:'e5';
 
 		$GSText2 = '<style>'.$GSText2;
+		$GSText2 = substr($GSText2, 0, strpos($GSText2, "Public"));
 
 		$dom = new DOMDocument();
 		$dom->preserveWhiteSpace = FALSE;

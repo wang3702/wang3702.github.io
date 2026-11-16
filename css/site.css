@@ -26,6 +26,9 @@
   --t-agent: #b45309;
   --t-its: #047857;
 
+  --bar: #6366f1;
+  --bar-soft: #b4b6f8;
+
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 28px rgba(16, 24, 40, 0.06);
   --shadow-hover: 0 2px 6px rgba(16, 24, 40, 0.06), 0 18px 44px rgba(99, 102, 241, 0.16);
   --blob-opacity: 0.45;
@@ -58,6 +61,8 @@
     --t-gen: #f9a8d4;
     --t-agent: #fcd34d;
     --t-its: #6ee7b7;
+    --bar: #7c83f6;
+    --bar-soft: #3f4380;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
     --shadow-hover: 0 2px 6px rgba(0, 0, 0, 0.4), 0 18px 44px rgba(129, 140, 248, 0.18);
     --blob-opacity: 0.28;
@@ -84,6 +89,8 @@
   --t-gen: #f9a8d4;
   --t-agent: #fcd34d;
   --t-its: #6ee7b7;
+  --bar: #7c83f6;
+  --bar-soft: #3f4380;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
   --shadow-hover: 0 2px 6px rgba(0, 0, 0, 0.4), 0 18px 44px rgba(129, 140, 248, 0.18);
   --blob-opacity: 0.28;
@@ -475,8 +482,15 @@ section { padding: 56px 0; }
   display: flex;
   flex-direction: column;
 }
+.cite-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 .cite-card h3 {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -486,20 +500,154 @@ section { padding: 56px 0; }
   align-items: center;
   gap: 8px;
 }
-.cite-frame {
-  flex: 1;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  padding: 10px 12px 4px;
-  min-height: 300px;
+.cite-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
-.cite-frame iframe {
-  width: 100%;
-  height: 290px;
-  border: 0;
+.cite-link i { font-size: 0.68rem; }
+.cite-link:hover { color: var(--a1); }
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.stat {
+  background: var(--bg-soft);
+  border-radius: 12px;
+  padding: 12px 12px 10px;
+  min-width: 0;
+}
+.stat-label { font-size: 0.78rem; color: var(--muted); }
+.stat-value {
+  font-size: 1.55rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.stat-sub {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--subtle);
+}
+.stat-sub span { white-space: nowrap; }
+
+.chart-title {
+  margin: 20px 0 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.cite-chart {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  flex: 1 1 auto;
+  padding-top: 22px;
+  margin-bottom: 16px;
+}
+.cite-chart .col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+  cursor: default;
+}
+.cite-chart .plot {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 120px;
+  border-bottom: 1px solid var(--border-strong);
+}
+.cite-chart .bar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: min(24px, 64%);
+  translate: -50% 0;
+  background: var(--bar);
+  border-radius: 4px 4px 0 0;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cite-chart .col.partial .bar { background: var(--bar-soft); }
+.cite-card.in .cite-chart.drawn .bar { transform: scaleY(1); }
+.cite-chart .col:hover .bar,
+.cite-chart .col:focus-visible .bar { filter: brightness(1.12); }
+.cite-chart .val,
+.cite-chart .tip {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  white-space: nowrap;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+.cite-chart .val {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease 0.6s;
+}
+.cite-card.in .cite-chart.drawn .val { opacity: 1; }
+.cite-chart .tip {
+  z-index: 2;
+  margin-bottom: 8px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  font-size: 0.74rem;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.cite-chart .tip b { color: var(--text); font-weight: 600; }
+.cite-chart .col:first-child .tip { left: 0; translate: 0 0; }
+.cite-chart .col:last-child .tip { left: auto; right: 0; translate: 0 0; }
+.cite-chart .col:hover .tip,
+.cite-chart .col:focus-visible .tip { opacity: 1; }
+.cite-chart .col:hover .val,
+.cite-chart .col:focus-visible .val { opacity: 0; transition-delay: 0s; }
+.cite-chart .yr {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+}
+.cite-chart .col.partial .yr::after { content: "*"; }
+.cite-chart.short-years .yr-c { display: none; }
+.cite-chart.short-years .yr::before { content: "\2019"; }
+.cite-foot {
+  margin: auto 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-strong);
+  font-size: 0.74rem;
+  color: var(--subtle);
+}
+.cite-foot a { color: inherit; text-decoration: underline; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
-  display: block;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ---------- Publications ---------- */
@@ -801,6 +949,7 @@ footer {
   .blob, .avatar-ring { animation: none; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
   .pub, .repo, .social, .pub-thumb img { transition: none; }
+  .cite-chart .bar, .cite-chart .val { transition: none; }
 }
 
 /* ---------- Responsive ---------- */

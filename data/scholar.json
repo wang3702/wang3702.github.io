@@ -1,0 +1,55 @@
+{
+  "updated": "2026-11-15",
+  "profile": "https://scholar.google.com/citations?user=AGS_dK8AAAAJ&hl=en",
+  "recent_label": "Since 2021",
+  "citations": {
+    "all": 4119,
+    "recent": 3967
+  },
+  "h_index": {
+    "all": 28,
+    "recent": 28
+  },
+  "i10_index": {
+    "all": 40,
+    "recent": 40
+  },
+  "per_year": [
+    {
+      "year": 2018,
+      "citations": 19
+    },
+    {
+      "year": 2019,
+      "citations": 43
+    },
+    {
+      "year": 2020,
+      "citations": 77
+    },
+    {
+      "year": 2021,
+      "citations": 189
+    },
+    {
+      "year": 2022,
+      "citations": 326
+    },
+    {
+      "year": 2023,
+      "citations": 527
+    },
+    {
+      "year": 2024,
+      "citations": 822
+    },
+    {
+      "year": 2025,
+      "citations": 1043
+    },
+    {
+      "year": 2026,
+      "citations": 1049
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+name: Update Google Scholar stats
+
+on:
+  schedule:
+    - cron: "23 7 * * 1" # every Monday, 07:23 UTC
+  workflow_dispatch: # "Run workflow" button for a manual refresh
+  push: # also run right after the scraper or this workflow changes
+    branches: [master]
+    paths:
+      - scripts/update_scholar.py
+      - .github/workflows/scholar.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scholar-stats
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch citation stats
+        run: python3 scripts/update_scholar.py
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- data/scholar.json; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add data/scholar.json
+          git commit -m "Update Google Scholar stats"
+          git push

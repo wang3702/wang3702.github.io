@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.8.6/css/academicons.min.css" integrity="sha256-uFVgMKfistnJAfoCUQigIl+JfUaP47GrRKjf6CTPVmw=" crossorigin="anonymous">
-  <link rel="stylesheet" href="css/site.css">
+  <link rel="stylesheet" href="css/site.css?v=4">
 </head>
 
 <body>
@@ -131,11 +131,20 @@
             </div>
           </div>
 
-          <div class="card cite-card reveal">
-            <h3><i class="ai ai-google-scholar"></i> Google Scholar citations</h3>
-            <div class="cite-frame">
-              <iframe src="https://kiharalab.org/dove/xiaowang/php_scholar/pub.php" title="Google Scholar citation statistics" scrolling="no" loading="lazy"></iframe>
+          <div class="card cite-card reveal" id="scholar">
+            <div class="cite-head">
+              <h3><i class="ai ai-google-scholar"></i> Google Scholar</h3>
+              <a class="cite-link" href="https://scholar.google.com/citations?user=AGS_dK8AAAAJ&amp;hl=en" target="_blank" rel="noopener">Profile <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
             </div>
+            <div class="stat-row">
+              <div class="stat"><div class="stat-label">Citations</div><div class="stat-value" data-stat="citations">—</div><div class="stat-sub" data-recent="citations">&nbsp;</div></div>
+              <div class="stat"><div class="stat-label">h-index</div><div class="stat-value" data-stat="h_index">—</div><div class="stat-sub" data-recent="h_index">&nbsp;</div></div>
+              <div class="stat"><div class="stat-label">i10-index</div><div class="stat-value" data-stat="i10_index">—</div><div class="stat-sub" data-recent="i10_index">&nbsp;</div></div>
+            </div>
+            <div class="chart-title">Citations per year</div>
+            <div class="cite-chart" id="citeChart" role="list" aria-label="Citations per year"></div>
+            <table class="sr-only" id="citeTable"><caption>Google Scholar citations per year</caption><thead><tr><th scope="col">Year</th><th scope="col">Citations</th></tr></thead><tbody></tbody></table>
+            <p class="cite-foot" id="citeFoot">Loading citation stats…</p>
           </div>
         </div>
       </div>
@@ -915,6 +924,91 @@
           emptyNote.classList.toggle('show', !any);
         });
       });
+
+      // Google Scholar stats: data/scholar.json is refreshed weekly by
+      // .github/workflows/scholar.yml (Scholar itself can't be embedded).
+      var chart = document.getElementById('citeChart');
+      var citeFoot = document.getElementById('citeFoot');
+      var profileUrl = 'https://scholar.google.com/citations?user=AGS_dK8AAAAJ&hl=en';
+      function fmt(n) { return Number(n).toLocaleString('en-US'); }
+      function el(tag, cls, text) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text != null) e.textContent = text;
+        return e;
+      }
+      fetch('data/scholar.json', { cache: 'no-cache' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (d) {
+          ['citations', 'h_index', 'i10_index'].forEach(function (k) {
+            document.querySelector('[data-stat="' + k + '"]').textContent = fmt(d[k].all);
+            var sub = document.querySelector('[data-recent="' + k + '"]');
+            sub.textContent = '';
+            sub.appendChild(el('span', null, fmt(d[k].recent)));
+            sub.appendChild(document.createTextNode(' '));
+            sub.appendChild(el('span', null, d.recent_label.toLowerCase()));
+          });
+
+          var rows = d.per_year || [];
+          var updatedYear = parseInt(d.updated.slice(0, 4), 10);
+          var max = Math.max.apply(null, rows.map(function (r) { return r.citations; })) || 1;
+          var peak = rows.reduce(function (best, r, i) { return r.citations > rows[best].citations ? i : best; }, 0);
+          var tbody = document.querySelector('#citeTable tbody');
+          rows.forEach(function (r, i) {
+            var partial = r.year === updatedYear;
+            var col = el('div', 'col' + (partial ? ' partial' : ''));
+            col.setAttribute('role', 'listitem');
+            col.tabIndex = 0;
+            col.setAttribute('aria-label', r.year + (partial ? ' (year to date)' : '') + ': ' + fmt(r.citations) + ' citations');
+            var plot = el('div', 'plot');
+            var pct = (r.citations / max) * 100;
+            if (r.citations > 0) {
+              var bar = el('div', 'bar');
+              bar.style.height = 'max(2px, ' + pct.toFixed(2) + '%)';
+              plot.appendChild(bar);
+            }
+            if (i === peak || i === rows.length - 1) {
+              var val = el('span', 'val', fmt(r.citations));
+              val.style.bottom = pct.toFixed(2) + '%';
+              plot.appendChild(val);
+            }
+            var tip = el('span', 'tip');
+            tip.style.bottom = pct.toFixed(2) + '%';
+            tip.appendChild(el('b', null, fmt(r.citations)));
+            tip.appendChild(document.createTextNode(' in ' + r.year + (partial ? ' so far' : '')));
+            plot.appendChild(tip);
+            col.appendChild(plot);
+            var yr = el('div', 'yr');
+            yr.appendChild(el('span', 'yr-c', String(r.year).slice(0, 2)));
+            yr.appendChild(document.createTextNode(String(r.year).slice(2)));
+            col.appendChild(yr);
+            chart.appendChild(col);
+
+            var tr = document.createElement('tr');
+            tr.appendChild(el('td', null, r.year + (partial ? ' (year to date)' : '')));
+            tr.appendChild(el('td', null, fmt(r.citations)));
+            tbody.appendChild(tr);
+          });
+          // Use two-digit years ('18) when full years don't fit the columns.
+          function fitYears() {
+            chart.classList.remove('short-years');
+            var over = [].some.call(chart.querySelectorAll('.yr'), function (y) { return y.scrollWidth > y.clientWidth + 1; });
+            chart.classList.toggle('short-years', over);
+          }
+          fitYears();
+          window.addEventListener('resize', fitYears);
+          requestAnimationFrame(function () { requestAnimationFrame(function () { chart.classList.add('drawn'); }); });
+
+          var when = new Date(d.updated + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          var hasPartial = rows.length && rows[rows.length - 1].year === updatedYear;
+          citeFoot.textContent = 'Updated ' + when + (hasPartial ? ' · * ' + updatedYear + ' is year to date' : '');
+        })
+        .catch(function () {
+          citeFoot.textContent = 'Citation stats are unavailable right now. ';
+          var a = el('a', null, 'View them on Google Scholar');
+          a.href = profileUrl; a.target = '_blank'; a.rel = 'noopener';
+          citeFoot.appendChild(a);
+        });
     })();
   </script>
 

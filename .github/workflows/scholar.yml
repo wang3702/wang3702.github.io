@@ -1,10 +1,11 @@
 name: Update Google Scholar stats
 
 on:
-  # Daily, but the script only fetches once the data is a week old, so a run
-  # that Scholar blocks is retried the next day instead of waiting a week.
+  # Every 6 hours, but the script only fetches once the data is a week old
+  # (other runs exit in seconds). Scholar blocks some runner IPs, so a blocked
+  # fetch is retried a few hours later on a different runner.
   schedule:
-    - cron: "23 7 * * *" # 07:23 UTC
+    - cron: "23 */6 * * *"
   workflow_dispatch: # "Run workflow" button for a manual refresh
   push: # also run right after the scraper or this workflow changes
     branches: [master]

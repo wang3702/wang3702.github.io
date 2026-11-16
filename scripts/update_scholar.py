@@ -7,8 +7,8 @@ GitHub Actions workflow in .github/workflows/scholar.yml runs this script on a
 schedule and commits the result. Standard library only, so no installs.
 
 Scholar blocks some GitHub runner IPs (HTTP 403) but not others, so the
-workflow runs daily: a scheduled run skips the fetch while the stored data is
-younger than REFRESH_DAYS, and otherwise retries each day until one succeeds.
+workflow runs every few hours: a scheduled run skips the fetch while the
+stored data is younger than REFRESH_DAYS, and otherwise tries until one works.
 Set FORCE=true to fetch regardless (manual and push-triggered runs do).
 
 If Scholar can't be reached or parsed, the existing JSON is kept. The run only

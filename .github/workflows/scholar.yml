@@ -1,8 +1,10 @@
 name: Update Google Scholar stats
 
 on:
+  # Daily, but the script only fetches once the data is a week old, so a run
+  # that Scholar blocks is retried the next day instead of waiting a week.
   schedule:
-    - cron: "23 7 * * 1" # every Monday, 07:23 UTC
+    - cron: "23 7 * * *" # 07:23 UTC
   workflow_dispatch: # "Run workflow" button for a manual refresh
   push: # also run right after the scraper or this workflow changes
     branches: [master]
@@ -25,6 +27,8 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Fetch citation stats
+        env:
+          FORCE: ${{ github.event_name != 'schedule' }}
         run: python3 scripts/update_scholar.py
 
       - name: Commit if changed

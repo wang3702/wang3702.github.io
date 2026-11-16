@@ -6,6 +6,11 @@ has no CORS or public API, so the homepage reads this JSON file instead. The
 GitHub Actions workflow in .github/workflows/scholar.yml runs this script on a
 schedule and commits the result. Standard library only, so no installs.
 
+Scholar blocks some GitHub runner IPs (HTTP 403) but not others, so the
+workflow runs daily: a scheduled run skips the fetch while the stored data is
+younger than REFRESH_DAYS, and otherwise retries each day until one succeeds.
+Set FORCE=true to fetch regardless (manual and push-triggered runs do).
+
 If Scholar can't be reached or parsed, the existing JSON is kept. The run only
 fails once that data is older than STALE_DAYS, so a one-off block stays quiet
 but a lasting one shows up as a failed workflow.
@@ -22,7 +27,9 @@ import urllib.request
 USER = os.environ.get("SCHOLAR_USER", "AGS_dK8AAAAJ")
 URL = f"https://scholar.google.com/citations?user={USER}&hl=en"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "scholar.json")
+REFRESH_DAYS = 7
 STALE_DAYS = 21
+FORCE = os.environ.get("FORCE", "").lower() == "true"
 UA = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/130.0 Safari/537.36"
@@ -92,10 +99,24 @@ def load_previous():
         return None
 
 
+def utc_today():
+    return dt.datetime.now(dt.timezone.utc).date()
+
+
+def age_in_days(data):
+    updated = (data or {}).get("updated")
+    return (utc_today() - dt.date.fromisoformat(updated)).days if updated else None
+
+
 def main():
     previous = load_previous()
+    age = age_in_days(previous)
+    if not FORCE and age is not None and age < REFRESH_DAYS:
+        print(f"Stored data is {age} day(s) old; next refresh due at {REFRESH_DAYS} days. Skipping.")
+        return 0
+
     data, error = None, None
-    for attempt, wait in enumerate((0, 30, 90), start=1):
+    for attempt, wait in enumerate((0, 20, 60), start=1):
         time.sleep(wait)
         try:
             data = parse(fetch(URL))
@@ -112,17 +133,15 @@ def main():
             print(f"Attempt {attempt} failed: {exc}", file=sys.stderr)
 
     if data is None:
-        updated = (previous or {}).get("updated")
-        age = (dt.date.today() - dt.date.fromisoformat(updated)).days if updated else None
         if age is not None and age <= STALE_DAYS:
             print(f"::warning::Could not refresh Google Scholar stats ({error}); "
-                  f"keeping data from {updated} ({age} days old).")
+                  f"keeping data from {previous['updated']} ({age} days old). Will retry next run.")
             return 0
         print(f"::error::Could not refresh Google Scholar stats ({error}); "
               f"stored data is {'missing' if age is None else f'{age} days old'}.")
         return 1
 
-    data = {"updated": dt.date.today().isoformat(), **data}
+    data = {"updated": utc_today().isoformat(), **data}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)

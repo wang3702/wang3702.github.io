@@ -489,7 +489,8 @@ section { padding: 56px 0; }
   gap: 12px;
   margin-bottom: 16px;
 }
-.cite-card h3 {
+.cite-card h3,
+.visit-card h3 {
   margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
@@ -911,7 +912,83 @@ footer {
   color: var(--subtle);
   font-size: 0.88rem;
 }
-.foot .visitors { opacity: 0.85; }
+.foot a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---------- Visitors chart ---------- */
+
+.visit-card { padding: 22px 22px 16px; margin-bottom: 28px; }
+.visit-total {
+  margin-top: 10px;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.visit-unit { font-size: 0.9rem; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.visit-sub { margin-top: 2px; font-size: 0.8rem; color: var(--subtle); }
+.visit-chart {
+  position: relative;
+  margin-top: 14px;
+  min-height: 180px;
+  border-radius: 10px;
+  outline: none;
+}
+.visit-chart:focus-visible { box-shadow: 0 0 0 2px color-mix(in oklab, var(--bar) 55%, transparent); }
+.visit-svg { display: block; overflow: visible; }
+.visit-svg .grid { stroke: var(--border); stroke-width: 1; }
+.visit-svg .axis { stroke: var(--border-strong); stroke-width: 1; }
+.visit-svg .tick {
+  fill: var(--subtle);
+  font: 11px var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+.visit-svg .line {
+  fill: none;
+  stroke: var(--bar);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.visit-svg .vf-top { stop-color: var(--bar); stop-opacity: 0.38; }
+.visit-svg .vf-bot { stop-color: var(--bar); stop-opacity: 0.04; }
+.visit-svg .dot,
+.visit-svg .hot { fill: var(--bar); stroke: var(--bg-elev); stroke-width: 2; }
+.visit-svg .end-label { fill: var(--muted); font: 600 12px var(--sans); font-variant-numeric: tabular-nums; }
+.visit-svg .cross { stroke: var(--subtle); stroke-width: 1; stroke-dasharray: 3 3; }
+.visit-svg .cross,
+.visit-svg .hot { opacity: 0; pointer-events: none; transition: opacity 0.12s ease; }
+.visit-chart.hovering .cross,
+.visit-chart.hovering .hot { opacity: 1; }
+.visit-svg .plot { clip-path: inset(0 100% 0 0); transition: clip-path 1.2s cubic-bezier(0.3, 0.7, 0.2, 1); }
+.visit-card.in .visit-chart.drawn .plot { clip-path: inset(0 0 0 0); }
+.visit-tip {
+  position: absolute;
+  z-index: 2;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  font-size: 0.76rem;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  font-variant-numeric: tabular-nums;
+}
+.visit-tip b { color: var(--text); font-weight: 600; }
+.visit-tip-head { color: var(--text); font-weight: 500; }
+.visit-chart.hovering .visit-tip { opacity: 1; }
+.visit-foot {
+  margin: 10px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-strong);
+  font-size: 0.74rem;
+  color: var(--subtle);
+}
 
 .to-top {
   position: fixed;
@@ -950,6 +1027,7 @@ footer {
   .js .reveal { opacity: 1; transform: none; transition: none; }
   .pub, .repo, .social, .pub-thumb img { transition: none; }
   .cite-chart .bar, .cite-chart .val { transition: none; }
+  .visit-svg .plot { transition: none; }
 }
 
 /* ---------- Responsive ---------- */

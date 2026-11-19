@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.8.6/css/academicons.min.css" integrity="sha256-uFVgMKfistnJAfoCUQigIl+JfUaP47GrRKjf6CTPVmw=" crossorigin="anonymous">
-  <link rel="stylesheet" href="css/site.css?v=4">
+  <link rel="stylesheet" href="css/site.css?v=6">
 </head>
 
 <body>
@@ -143,7 +143,7 @@
             </div>
             <div class="chart-title">Citations per year</div>
             <div class="cite-chart" id="citeChart" role="list" aria-label="Citations per year"></div>
-            <table class="sr-only" id="citeTable"><caption>Google Scholar citations per year</caption><thead><tr><th scope="col">Year</th><th scope="col">Citations</th></tr></thead><tbody></tbody></table>
+            <div class="sr-only"><table id="citeTable"><caption>Google Scholar citations per year</caption><thead><tr><th scope="col">Year</th><th scope="col">Citations</th></tr></thead><tbody></tbody></table></div>
             <p class="cite-foot" id="citeFoot">Loading citation stats…</p>
           </div>
         </div>
@@ -835,10 +835,20 @@
 
   <!-- ============================== FOOTER ============================== -->
   <footer>
-    <div class="container foot">
-      <div>© 2021 – 2026 · Xiao Wang</div>
-      <div class="visitors">
-        <script type="text/javascript" id="clustrmaps" src="//cdn.clustrmaps.com/map_v2.js?cl=ffffff&amp;w=300&amp;t=tt&amp;d=7e1XVoQeWUvHmwfThy4G2T2QUHl0lWh59stCFmeN4XU"></script>
+    <div class="container">
+      <div class="card visit-card reveal" id="visitors">
+        <div class="visit-head">
+          <h3><i class="fa-solid fa-chart-area"></i> Visitors</h3>
+          <div class="visit-total"><span id="visitTotal">—</span> <span class="visit-unit">total visitors</span></div>
+          <div class="visit-sub" id="visitSub">&nbsp;</div>
+        </div>
+        <div class="visit-chart" id="visitChart"></div>
+        <div class="sr-only"><table id="visitTable"><caption>Total visitors by year</caption><thead><tr><th scope="col">Year</th><th scope="col">Visitors that year</th><th scope="col">Running total</th></tr></thead><tbody></tbody></table></div>
+        <p class="visit-foot" id="visitFoot">Loading visitor stats…</p>
+      </div>
+      <div class="foot">
+        <div>© 2021 – 2026 · Xiao Wang</div>
+        <div>Visitor stats by <a href="https://www.goatcounter.com/" target="_blank" rel="noopener">GoatCounter</a></div>
       </div>
     </div>
   </footer>
@@ -1009,6 +1019,172 @@
           a.href = profileUrl; a.target = '_blank'; a.rel = 'noopener';
           citeFoot.appendChild(a);
         });
+
+      // Visitor chart: each year's total comes from GoatCounter's public counter
+      // API (wang3702.goatcounter.com, "Allow adding visitor counts" enabled) and
+      // is drawn as a running total. VISIT_START is the day counting began.
+      var GC = 'https://wang3702.goatcounter.com';
+      var VISIT_START = '2026-11-19';
+      var visitChart = document.getElementById('visitChart');
+      var visitFoot = document.getElementById('visitFoot');
+      var SVGNS = 'http://www.w3.org/2000/svg';
+      function svgEl(tag, attrs, parent) {
+        var e = document.createElementNS(SVGNS, tag);
+        for (var k in attrs) e.setAttribute(k, attrs[k]);
+        if (parent) parent.appendChild(e);
+        return e;
+      }
+      function compact(n) {
+        return n >= 10000 ? (n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, '') + 'K' : fmt(n);
+      }
+      function niceMax(v) {
+        if (v <= 10) return 10;
+        var p = Math.pow(10, Math.floor(Math.log(v) / Math.LN10)), r = v / p;
+        return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * p;
+      }
+      var dateFmt = { month: 'short', day: 'numeric', year: 'numeric' };
+      var visitStart = new Date(VISIT_START + 'T00:00:00');
+      var visitNow = new Date();
+      var firstYear = visitStart.getFullYear();
+      var lastYear = Math.max(firstYear, visitNow.getFullYear());
+      var visitYears = [];
+      for (var vy = firstYear; vy <= lastYear; vy++) visitYears.push(vy);
+
+      function yearCount(y) {
+        var url = GC + '/counter/TOTAL.json?start=' + y + '-01-01&end=' + y + '-12-31';
+        return fetch(url).then(function (r) {
+          if (r.status === 404) return 0; // no visits recorded in that period yet
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json().then(function (d) { return parseInt(String(d.count).replace(/\D/g, ''), 10) || 0; });
+        });
+      }
+
+      function drawVisitors(pts) {
+        visitChart.textContent = '';
+        var W = visitChart.clientWidth || 600, H = W < 520 ? 180 : 210;
+        var m = { t: 22, r: 16, b: 26, l: 46 };
+        // Time axis runs from the first counted day to today, so the area always
+        // spans the full width; year bands widen as the years go by.
+        var x0 = visitStart.getTime(), x1 = Math.max(visitNow.getTime(), x0 + 36e5);
+        var last = pts[pts.length - 1];
+        var maxV = niceMax(last.v * 1.12);
+        function X(t) { return m.l + (t - x0) / (x1 - x0) * (W - m.l - m.r); }
+        function Y(v) { return H - m.b - (v / maxV) * (H - m.t - m.b); }
+
+        var s = svgEl('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, 'class': 'visit-svg', 'aria-hidden': 'true' }, visitChart);
+        var lg = svgEl('linearGradient', { id: 'visitFill', x1: 0, y1: 0, x2: 0, y2: 1 }, svgEl('defs', {}, s));
+        svgEl('stop', { offset: '0%', 'class': 'vf-top' }, lg);
+        svgEl('stop', { offset: '100%', 'class': 'vf-bot' }, lg);
+
+        [0, maxV / 2, maxV].forEach(function (v) {
+          svgEl('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), 'class': v === 0 ? 'axis' : 'grid' }, s);
+          svgEl('text', { x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end', 'class': 'tick' }, s).textContent = compact(v);
+        });
+        for (var y = firstYear; y <= lastYear; y++) {
+          var a = X(Math.max(new Date(y, 0, 1).getTime(), x0)), b = X(Math.min(new Date(y + 1, 0, 1).getTime(), x1));
+          if (y > firstYear) svgEl('line', { x1: a, x2: a, y1: m.t, y2: H - m.b, 'class': 'grid' }, s);
+          if (b - a < 24) continue; // too narrow to label (e.g. the first days of a new year)
+          svgEl('text', { x: (a + b) / 2, y: H - 8, 'text-anchor': 'middle', 'class': 'tick' }, s)
+            .textContent = b - a < 38 ? '’' + String(y).slice(2) : String(y);
+        }
+
+        var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + X(p.t).toFixed(1) + ',' + Y(p.v).toFixed(1); }).join('');
+        var g = svgEl('g', { 'class': 'plot' }, s);
+        svgEl('path', { d: line + 'L' + X(last.t).toFixed(1) + ',' + Y(0) + 'L' + X(pts[0].t).toFixed(1) + ',' + Y(0) + 'Z', fill: 'url(#visitFill)', 'class': 'area' }, g);
+        svgEl('path', { d: line, 'class': 'line' }, g);
+        svgEl('circle', { cx: X(last.t), cy: Y(last.v), r: 4.5, 'class': 'dot' }, g);
+        var roomLeft = X(last.t) - m.l > 70;
+        svgEl('text', {
+          x: X(last.t) + (roomLeft ? -10 : 10), y: Y(last.v) - 10,
+          'text-anchor': roomLeft ? 'end' : 'start', 'class': 'end-label'
+        }, g).textContent = fmt(last.v);
+
+        // Hover / keyboard layer: snap to the nearest point.
+        var cross = svgEl('line', { y1: m.t, y2: H - m.b, 'class': 'cross' }, s);
+        var hot = svgEl('circle', { r: 5, 'class': 'hot' }, s);
+        var tip = document.createElement('div');
+        tip.className = 'visit-tip';
+        visitChart.appendChild(tip);
+        var hit = svgEl('rect', { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: 'transparent' }, s);
+        var current = pts.length - 1;
+        function show(i) {
+          current = i;
+          var p = pts[i], px = X(p.t), py = Y(p.v);
+          cross.setAttribute('x1', px); cross.setAttribute('x2', px);
+          hot.setAttribute('cx', px); hot.setAttribute('cy', py);
+          tip.innerHTML = '';
+          var head = document.createElement('div');
+          head.className = 'visit-tip-head';
+          head.textContent = p.label;
+          tip.appendChild(head);
+          if (i > 0) {
+            var body = document.createElement('div');
+            body.innerHTML = '<b>' + fmt(p.v) + '</b> total · +' + fmt(p.inYear) + ' in ' + p.year + (p.partial ? ' so far' : '');
+            tip.appendChild(body);
+          }
+          visitChart.classList.add('hovering');
+          var tw = tip.offsetWidth;
+          tip.style.left = Math.max(0, Math.min(W - tw, px - tw / 2)) + 'px';
+          tip.style.top = Math.max(0, py - tip.offsetHeight - 14) + 'px';
+        }
+        function hide() { visitChart.classList.remove('hovering'); }
+        hit.addEventListener('pointermove', function (e) {
+          var mx = e.clientX - s.getBoundingClientRect().left, best = 0;
+          pts.forEach(function (p, i) { if (Math.abs(X(p.t) - mx) < Math.abs(X(pts[best].t) - mx)) best = i; });
+          show(best);
+        });
+        hit.addEventListener('pointerleave', hide);
+        visitChart.onfocus = function () { show(current); };
+        visitChart.onblur = hide;
+        visitChart.onkeydown = function (e) {
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            show(Math.max(0, Math.min(pts.length - 1, current + (e.key === 'ArrowRight' ? 1 : -1))));
+          }
+        };
+      }
+
+      Promise.all(visitYears.map(yearCount))
+        .then(function (counts) {
+          var pts = [{ t: visitStart.getTime(), v: 0, label: visitStart.toLocaleDateString('en-US', dateFmt) + ' — counting started' }];
+          var total = 0, tbody = document.querySelector('#visitTable tbody');
+          counts.forEach(function (c, i) {
+            var y = visitYears[i], partial = y === lastYear;
+            total += c;
+            pts.push({
+              t: partial ? Math.max(visitNow.getTime(), visitStart.getTime()) : new Date(y + 1, 0, 1).getTime(),
+              v: total, inYear: c, year: y, partial: partial,
+              label: partial ? 'Today' : 'End of ' + y
+            });
+            var tr = document.createElement('tr');
+            tr.appendChild(el('td', null, y + (partial ? ' (so far)' : '')));
+            tr.appendChild(el('td', null, fmt(c)));
+            tr.appendChild(el('td', null, fmt(total)));
+            tbody.appendChild(tr);
+          });
+
+          document.getElementById('visitTotal').textContent = fmt(total);
+          var since = 'Since ' + visitStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          document.getElementById('visitSub').textContent = lastYear > firstYear
+            ? since + ' · ' + fmt(counts[counts.length - 1]) + ' in ' + lastYear + ' so far'
+            : since;
+          visitFoot.textContent = 'Live from GoatCounter · refreshes every few hours';
+          visitChart.tabIndex = 0;
+          visitChart.setAttribute('role', 'img');
+          visitChart.setAttribute('aria-label', 'Area chart of total visitors since ' +
+            visitStart.toLocaleDateString('en-US', dateFmt) + ': ' + fmt(total) + ' so far. Use left and right arrow keys to step through years.');
+
+          drawVisitors(pts);
+          requestAnimationFrame(function () { requestAnimationFrame(function () { visitChart.classList.add('drawn'); }); });
+          var resizeTimer;
+          window.addEventListener('resize', function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () { drawVisitors(pts); }, 150);
+          });
+        })
+        .catch(function () {
+          visitFoot.textContent = 'Visitor stats are unavailable right now.';
+        });
     })();
   </script>
 
@@ -1022,5 +1198,7 @@
     ga('create', 'UA-89924514-1', 'auto', 'second');
     ga('second.send', 'pageview');
   </script>
+  <!-- Visit counting (privacy-friendly, no cookies). Stats: https://wang3702.goatcounter.com -->
+  <script data-goatcounter="https://wang3702.goatcounter.com/count" async src="https://gc.zgo.at/count.v5.js" crossorigin="anonymous" integrity="sha384-atnOLvQb9t+jTSipvd75X2yginT4PjVbqDdlJAmxMm+wYElFmeR6EmLP5bYeoRVQ"></script>
 </body>
 </html>

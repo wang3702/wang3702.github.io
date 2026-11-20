@@ -982,6 +982,73 @@ footer {
 .visit-tip b { color: var(--text); font-weight: 600; }
 .visit-tip-head { color: var(--text); font-weight: 500; }
 .visit-chart.hovering .visit-tip { opacity: 1; }
+/* Visitor map */
+.map-block { margin-top: 10px; }
+.map-block[hidden] { display: none; }
+.map-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.map-sub { font-size: 0.76rem; color: var(--subtle); font-variant-numeric: tabular-nums; }
+.map-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 24px;
+  align-items: center;
+  margin-top: 10px;
+}
+.map-wrap.no-list { grid-template-columns: minmax(0, 1fr); }
+.map-wrap.no-list .map-list { display: none; }
+.visit-map { position: relative; }
+.map-svg { display: block; width: 100%; height: auto; }
+.map-svg .land { fill: color-mix(in oklab, var(--text) 9%, transparent); fill-rule: evenodd; }
+.map-svg .bubble {
+  fill: var(--bar);
+  fill-opacity: 0.45;
+  stroke: var(--bar);
+  stroke-width: 1.25px;
+  vector-effect: non-scaling-stroke;
+  transition: fill-opacity 0.12s ease;
+}
+.map-svg .bubble.on { fill-opacity: 0.85; }
+.visit-map.hovering .visit-tip { opacity: 1; }
+.map-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.map-empty span {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+}
+.map-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.map-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 10px;
+  row-gap: 4px;
+  font-size: 0.8rem;
+}
+.mr-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mr-val { color: var(--muted); font-variant-numeric: tabular-nums; }
+.mr-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--text) 8%, transparent);
+  overflow: hidden;
+}
+.mr-bar i { display: block; height: 100%; border-radius: 2px; background: var(--bar); }
+.map-more { font-size: 0.74rem; color: var(--subtle); }
+@media (max-width: 720px) {
+  .map-wrap { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .map-list { grid-template-columns: 1fr 1fr; column-gap: 20px; }
+}
+
 .visit-foot {
   margin: 10px 0 0;
   padding-top: 12px;

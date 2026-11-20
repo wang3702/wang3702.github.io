@@ -1,0 +1,45 @@
+name: Update visitor map
+
+on:
+  # Every 6 hours. The data file only changes (and gets committed) when the
+  # per-country counts have changed.
+  schedule:
+    - cron: "53 */6 * * *"
+  workflow_dispatch: # "Run workflow" button for a manual refresh
+  push: # also run right after the script or this workflow changes
+    branches: [master]
+    paths:
+      - scripts/update_visitors.py
+      - .github/workflows/visitors.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: visitor-map
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch visitors per country
+        env:
+          GOATCOUNTER_TOKEN: ${{ secrets.GOATCOUNTER_TOKEN }}
+        run: python3 scripts/update_visitors.py
+
+      - name: Commit if changed
+        run: |
+          if [ -z "$(git status --porcelain -- data/visitors.json)" ]; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add data/visitors.json
+          git commit -m "Update visitor map"
+          git pull --rebase
+          git push

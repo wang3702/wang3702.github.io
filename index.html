@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.8.6/css/academicons.min.css" integrity="sha256-uFVgMKfistnJAfoCUQigIl+JfUaP47GrRKjf6CTPVmw=" crossorigin="anonymous">
-  <link rel="stylesheet" href="css/site.css?v=6">
+  <link rel="stylesheet" href="css/site.css?v=7">
 </head>
 
 <body>
@@ -844,6 +844,17 @@
         </div>
         <div class="visit-chart" id="visitChart"></div>
         <div class="sr-only"><table id="visitTable"><caption>Total visitors by year</caption><thead><tr><th scope="col">Year</th><th scope="col">Visitors that year</th><th scope="col">Running total</th></tr></thead><tbody></tbody></table></div>
+        <div class="map-block" id="mapBlock">
+          <div class="map-head">
+            <div class="chart-title">Where visitors come from</div>
+            <div class="map-sub" id="mapSub"></div>
+          </div>
+          <div class="map-wrap" id="mapWrap">
+            <div class="visit-map" id="visitMap"></div>
+            <ol class="map-list" id="mapList"></ol>
+          </div>
+          <div class="sr-only"><table id="mapTable"><caption>Visitors by country</caption><thead><tr><th scope="col">Country</th><th scope="col">Visitors</th></tr></thead><tbody></tbody></table></div>
+        </div>
         <p class="visit-foot" id="visitFoot">Loading visitor stats…</p>
       </div>
       <div class="foot">
@@ -1185,6 +1196,129 @@
         .catch(function () {
           visitFoot.textContent = 'Visitor stats are unavailable right now.';
         });
+
+      // Visitor map: data/visitors.json holds visitors per country, written every
+      // few hours by .github/workflows/visitors.yml (GoatCounter works out the
+      // country and doesn't keep IPs). Bubbles sit at country centroids on an
+      // Equal Earth outline from data/world.json; bubble area tracks visitors.
+      var visitMap = document.getElementById('visitMap');
+      var mapList = document.getElementById('mapList');
+      var mapState = { show: function () {}, hide: function () {} };
+      function equalEarth(lon, lat) {
+        var A1 = 1.340264, A2 = -0.081106, A3 = 0.000893, A4 = 0.003796, M = Math.sqrt(3) / 2;
+        var l = lon * Math.PI / 180, t = Math.asin(M * Math.sin(lat * Math.PI / 180));
+        var t2 = t * t, t6 = t2 * t2 * t2;
+        return [l * Math.cos(t) / (M * (A1 + 3 * A2 * t2 + t6 * (7 * A3 + 9 * A4 * t2))),
+                t * (A1 + A2 * t2 + t6 * (A3 + A4 * t2))];
+      }
+      function share(n, total) {
+        var p = n / total * 100;
+        return p < 1 ? '<1%' : Math.round(p) + '%';
+      }
+
+      function drawMap(world, countries, total) {
+        visitMap.textContent = '';
+        visitMap.classList.remove('hovering');
+        var Wpx = visitMap.clientWidth || 600, u = world.w / Wpx; // viewBox units per screen pixel
+        var rMax = Math.min(22, Wpx * 0.04); // largest bubble, in screen pixels
+        var s = svgEl('svg', { viewBox: '0 0 ' + world.w + ' ' + world.h, 'class': 'map-svg', 'aria-hidden': 'true' }, visitMap);
+        svgEl('path', { d: world.land, 'class': 'land' }, s);
+        var placed = countries.filter(function (c) { return world.centroids[c.id]; });
+        if (!placed.length) {
+          var empty = el('div', 'map-empty', null);
+          empty.appendChild(el('span', null, 'Visitor locations will show up here as visits come in.'));
+          visitMap.appendChild(empty);
+          return;
+        }
+        var tip = el('div', 'visit-tip', null);
+        visitMap.appendChild(tip);
+        var max = placed[0].count, g = svgEl('g', { 'class': 'bubbles' }, s), on = null;
+        placed.forEach(function (c) { // largest first, so smaller bubbles stay on top
+          var ll = world.centroids[c.id], p = equalEarth(ll[0], Math.max(ll[1], world.lat_min));
+          c.cx = p[0] * world.k + world.tx;
+          c.cy = -p[1] * world.k + world.ty;
+          c.r = Math.max(3, rMax * Math.sqrt(c.count / max)) * u;
+          c.dot = svgEl('circle', { cx: c.cx.toFixed(1), cy: c.cy.toFixed(1), r: c.r.toFixed(1), 'class': 'bubble' }, g);
+          c.dot.addEventListener('pointerenter', function () { mapState.show(c); });
+          c.dot.addEventListener('pointerleave', function () { mapState.hide(); });
+        });
+        mapState.show = function (c) {
+          if (on && on.dot) on.dot.classList.remove('on');
+          on = c;
+          if (c.dot) c.dot.classList.add('on');
+          tip.textContent = '';
+          tip.appendChild(el('div', 'visit-tip-head', c.name));
+          var body = el('div', null, null);
+          body.innerHTML = '<b>' + fmt(c.count) + '</b> visitor' + (c.count === 1 ? '' : 's') + ' · ' + share(c.count, total);
+          tip.appendChild(body);
+          visitMap.classList.add('hovering');
+          if (!c.dot) { visitMap.classList.remove('hovering'); return; } // not on the map (unknown location)
+          var x = c.cx / u, y = (c.cy - c.r) / u, tw = tip.offsetWidth;
+          tip.style.left = Math.max(0, Math.min(Wpx - tw, x - tw / 2)) + 'px';
+          tip.style.top = Math.max(0, y - tip.offsetHeight - 8) + 'px';
+        };
+        mapState.hide = function () {
+          if (on && on.dot) on.dot.classList.remove('on');
+          on = null;
+          visitMap.classList.remove('hovering');
+        };
+      }
+
+      function buildMapList(countries) {
+        mapList.textContent = '';
+        var top = countries.slice(0, 6), max = top.length ? top[0].count : 1;
+        top.forEach(function (c) {
+          var li = el('li', 'map-row', null), bar = el('span', 'mr-bar', null), fill = el('i', null, null);
+          li.appendChild(el('span', 'mr-name', c.name));
+          li.appendChild(el('span', 'mr-val', fmt(c.count)));
+          fill.style.width = (c.count / max * 100).toFixed(1) + '%';
+          bar.appendChild(fill);
+          li.appendChild(bar);
+          li.addEventListener('pointerenter', function () { mapState.show(c); });
+          li.addEventListener('pointerleave', function () { mapState.hide(); });
+          mapList.appendChild(li);
+        });
+        if (countries.length > top.length) {
+          var more = countries.length - top.length;
+          mapList.appendChild(el('li', 'map-more', '+ ' + more + ' more ' + (more === 1 ? 'country' : 'countries')));
+        }
+      }
+
+      Promise.all([
+        fetch('data/world.json').then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
+        fetch('data/visitors.json', { cache: 'no-cache' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; })
+      ]).then(function (res) {
+        var world = res[0], countries = ((res[1] && res[1].countries) || []).filter(function (c) { return c.count > 0; });
+        countries.sort(function (a, b) { return b.count - a.count; });
+        var total = countries.reduce(function (t, c) { return t + c.count; }, 0);
+        var n = countries.filter(function (c) { return world.centroids[c.id]; }).length;
+        document.getElementById('mapSub').textContent = n ? n + (n === 1 ? ' country' : ' countries') : '';
+        document.getElementById('mapWrap').classList.toggle('no-list', !countries.length);
+        var tbody = document.querySelector('#mapTable tbody');
+        countries.forEach(function (c) {
+          var tr = document.createElement('tr');
+          tr.appendChild(el('td', null, c.name));
+          tr.appendChild(el('td', null, fmt(c.count)));
+          tbody.appendChild(tr);
+        });
+        visitMap.setAttribute('role', 'img');
+        visitMap.setAttribute('aria-label', countries.length
+          ? 'World map of visitors by country. Top: ' + countries.slice(0, 3).map(function (c) { return c.name + ' ' + fmt(c.count); }).join(', ') + '.'
+          : 'World map of visitors by country. No locations recorded yet.');
+        buildMapList(countries);
+        drawMap(world, countries, total);
+        var mapTimer, lastW = visitMap.clientWidth;
+        window.addEventListener('resize', function () {
+          clearTimeout(mapTimer);
+          mapTimer = setTimeout(function () {
+            if (visitMap.clientWidth !== lastW) { lastW = visitMap.clientWidth; drawMap(world, countries, total); }
+          }, 150);
+        });
+      }).catch(function () {
+        document.getElementById('mapBlock').hidden = true;
+      });
     })();
   </script>
 

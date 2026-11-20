@@ -1061,8 +1061,15 @@
       var visitYears = [];
       for (var vy = firstYear; vy <= lastYear; vy++) visitYears.push(vy);
 
+      function ymd(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
       function yearCount(y) {
-        var url = GC + '/counter/TOTAL.json?start=' + y + '-01-01&end=' + y + '-12-31';
+        // GoatCounter caches each counter URL for hours. For the current year any
+        // future end date gives the same count, so step it with the hour (Dec 31
+        // plus 0-23 days) to get a number that is at most an hour old.
+        var end = y === visitNow.getFullYear() ? new Date(y, 11, 31 + visitNow.getHours()) : new Date(y, 11, 31);
+        var url = GC + '/counter/TOTAL.json?start=' + y + '-01-01&end=' + ymd(end);
         return fetch(url).then(function (r) {
           if (r.status === 404) return 0; // no visits recorded in that period yet
           if (!r.ok) throw new Error('HTTP ' + r.status);

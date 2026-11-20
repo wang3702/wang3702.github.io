@@ -36,11 +36,13 @@ def api(path, **params):
 
 
 def fetch_countries():
-    now = dt.datetime.now(dt.timezone.utc).replace(minute=0, second=0, microsecond=0)
-    end = (now + dt.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Location stats are kept per day in the account's timezone, so a range
+    # ending "now" in UTC can cut off part of today. Pad both ends by a day.
+    start = (dt.date.fromisoformat(SINCE) - dt.timedelta(days=1)).isoformat() + "T00:00:00Z"
+    end = (dt.datetime.now(dt.timezone.utc).date() + dt.timedelta(days=2)).isoformat() + "T00:00:00Z"
     countries, offset = [], 0
     while True:
-        page = api("stats/locations", start=f"{SINCE}T00:00:00Z", end=end, limit=PAGE, offset=offset)
+        page = api("stats/locations", start=start, end=end, limit=PAGE, offset=offset)
         for s in page.get("stats") or []:
             if s.get("count"):
                 countries.append({"id": s.get("id") or "", "name": s.get("name") or "Unknown",
@@ -67,12 +69,18 @@ def main():
     try:
         countries = fetch_countries()
     except urllib.error.HTTPError as exc:
+        try:  # GoatCounter explains errors as {"error": "..."} or {"errors": {...}}
+            body = exc.read().decode("utf-8", "replace")
+            detail = json.loads(body)
+            detail = detail.get("error") or detail.get("errors") or detail
+        except Exception:
+            detail = body[:200] if "body" in locals() else ""
         if exc.code in (401, 403):
-            print(f"::error::GoatCounter rejected the API key (HTTP {exc.code}). "
+            print(f"::error::GoatCounter rejected the API key (HTTP {exc.code}: {detail}). "
                   "Check that GOATCOUNTER_TOKEN is valid and has the 'Read statistics' permission.")
             return 1
-        print(f"::warning::GoatCounter API error (HTTP {exc.code}); keeping the existing map data.")
-        return 0
+        print(f"::error::GoatCounter API error (HTTP {exc.code}: {detail}); keeping the existing map data.")
+        return 1
     except Exception as exc:  # network errors, bad JSON
         print(f"::warning::Could not reach GoatCounter ({exc}); keeping the existing map data.")
         return 0

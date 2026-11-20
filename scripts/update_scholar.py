@@ -27,7 +27,7 @@ import urllib.request
 USER = os.environ.get("SCHOLAR_USER", "AGS_dK8AAAAJ")
 URL = f"https://scholar.google.com/citations?user={USER}&hl=en"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "scholar.json")
-REFRESH_DAYS = 7
+REFRESH_DAYS = 2  # fetch once the stored data is two days old
 STALE_DAYS = 21
 FORCE = os.environ.get("FORCE", "").lower() == "true"
 UA = (

@@ -1,7 +1,7 @@
 name: Update Google Scholar stats
 
 on:
-  # Every 6 hours, but the script only fetches once the data is a week old
+  # Every 6 hours, but the script only fetches once the data is two days old
   # (other runs exit in seconds). Scholar blocks some runner IPs, so a blocked
   # fetch is retried a few hours later on a different runner.
   schedule:

@@ -2,8 +2,8 @@ name: Update Google Scholar stats
 
 on:
   # Once a day (06:23 UTC), but the script only fetches once the data is two
-  # days old (other runs exit in seconds). Scholar blocks some runner IPs, so
-  # a blocked fetch is retried the next day on a different runner.
+  # days old (other runs exit in seconds). Scholar refuses GitHub's servers,
+  # so the script falls back to the kiharalab.org forwarder page.
   schedule:
     - cron: "23 6 * * *"
   workflow_dispatch: # "Run workflow" button for a manual refresh

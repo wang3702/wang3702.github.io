@@ -1,10 +1,10 @@
 {
-  "updated": "2026-11-16",
+  "updated": "2026-11-21",
   "profile": "https://scholar.google.com/citations?user=AGS_dK8AAAAJ&hl=en",
   "recent_label": "Since 2021",
   "citations": {
-    "all": 4119,
-    "recent": 3967
+    "all": 4132,
+    "recent": 3968
   },
   "h_index": {
     "all": 28,
@@ -45,11 +45,11 @@
     },
     {
       "year": 2025,
-      "citations": 1043
+      "citations": 1038
     },
     {
       "year": 2026,
-      "citations": 1049
+      "citations": 1066
     }
   ]
 }

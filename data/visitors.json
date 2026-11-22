@@ -1,15 +1,20 @@
 {
- "updated": "2026-11-21T19:50Z",
+ "updated": "2026-11-22T07:32Z",
  "since": "2026-11-19",
  "countries": [
   {
    "id": "US",
    "name": "United States",
-   "count": 19
+   "count": 22
   },
   {
    "id": "CA",
    "name": "Canada",
+   "count": 1
+  },
+  {
+   "id": "CN",
+   "name": "China",
    "count": 1
   }
  ]

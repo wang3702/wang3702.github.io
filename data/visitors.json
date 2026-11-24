@@ -1,11 +1,11 @@
 {
- "updated": "2026-11-23T08:20Z",
+ "updated": "2026-11-24T10:28Z",
  "since": "2026-11-19",
  "countries": [
   {
    "id": "US",
    "name": "United States",
-   "count": 32
+   "count": 38
   },
   {
    "id": "CA",
@@ -25,6 +25,11 @@
   {
    "id": "IN",
    "name": "India",
+   "count": 1
+  },
+  {
+   "id": "VN",
+   "name": "Vietnam",
    "count": 1
   }
  ]

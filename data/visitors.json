@@ -1,11 +1,16 @@
 {
- "updated": "2026-11-24T22:48Z",
+ "updated": "2026-11-25T22:00Z",
  "since": "2026-11-19",
  "countries": [
   {
    "id": "US",
    "name": "United States",
-   "count": 44
+   "count": 48
+  },
+  {
+   "id": "SG",
+   "name": "Singapore",
+   "count": 2
   },
   {
    "id": "CA",
@@ -30,11 +35,6 @@
   {
    "id": "JP",
    "name": "Japan",
-   "count": 1
-  },
-  {
-   "id": "SG",
-   "name": "Singapore",
    "count": 1
   },
   {
